@@ -9,18 +9,22 @@
 <body>
     <div class="container">
         <h1>Cotton Production Prediction</h1>
-        <form id="predictionForm">
-            <label for="year">Year:</label>
-            <input type="number" id="year" name="year" required>
-            <label for="region">Region:</label>
-            <select id="region" name="region">
-                <option value="Ağsu">Ağsu</option>
-                <option value="OtherRegion1">OtherRegion1</option>
-                <option value="OtherRegion2">OtherRegion2</option>
+
+        <form id="predictionForm" class="form">
+            <label for="year">Select Year:</label>
+            <select id="year" name="year">
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+                <option value="2028">2028</option>
             </select>
+
             <button type="submit">Predict</button>
         </form>
+
         <div id="result"></div>
+        <div id="chart"></div> <!-- Div to display the bar chart -->
     </div>
 
     <script src="/static/app.js"></script>
