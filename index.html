@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotton Production Prediction</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Cotton Production Prediction</h1>
+        <form id="predictionForm">
+            <label for="year">Year:</label>
+            <input type="number" id="year" name="year" required>
+            <label for="region">Region:</label>
+            <select id="region" name="region">
+                <option value="Ağsu">Ağsu</option>
+                <option value="OtherRegion1">OtherRegion1</option>
+                <option value="OtherRegion2">OtherRegion2</option>
+            </select>
+            <button type="submit">Predict</button>
+        </form>
+        <div id="result"></div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
