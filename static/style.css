@@ -8,38 +8,50 @@ body {
     font-family: Arial, sans-serif;
     color: white;
     text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 20px; /* Added padding to prevent content from sticking to the screen edges */
 }
 
 h1 {
-    margin-top: 50px;
-    font-size: 3em;
+    margin-top: 20px;
+    font-size: 2.5em;
     color: white;
     text-shadow: 2px 2px 5px black;
+    line-height: 1.2;
 }
 
 form {
-    background-color: rgba(0, 0, 0, 0.6);
-    padding: 20px;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 15px;
     border-radius: 10px;
-    display: inline-block;
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+    width: 90%; /* Responsive width */
+    max-width: 400px; /* Restricting max width for larger screens */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 select, button {
-    padding: 10px;
-    font-size: 1.2em;
-    margin: 10px;
+    padding: 12px;
+    font-size: 1.1em;
+    margin: 10px 0;
     border-radius: 5px;
     border: none;
     outline: none;
     background-color: #f0f0f0;
     color: #333;
+    width: 100%; /* Full width for better mobile experience */
 }
 
 button {
     background-color: #4CAF50;
     color: white;
     cursor: pointer;
+    width: 100%;
 }
 
 button:hover {
@@ -47,8 +59,8 @@ button:hover {
 }
 
 #result {
-    margin-top: 30px;
-    font-size: 2em;
+    margin-top: 20px;
+    font-size: 1.5em;
     font-weight: bold;
     color: #FFD700;
     text-shadow: 1px 1px 4px black;
@@ -56,4 +68,25 @@ button:hover {
 
 #result span {
     color: white;
+}
+
+/* Media Queries for Mobile */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2em; /* Adjust heading size */
+    }
+
+    form {
+        width: 100%; /* Ensure form takes full width */
+        padding: 20px; /* Add padding */
+    }
+
+    select, button {
+        font-size: 1em; /* Adjust input and button font size */
+        padding: 10px;  /* Adjust padding */
+    }
+
+    #result {
+        font-size: 1.2em; /* Adjust result font size for smaller screens */
+    }
 }

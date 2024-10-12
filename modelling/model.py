@@ -1,73 +1,46 @@
 import optuna
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv1D, LSTM, Dense, MaxPooling1D
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 import joblib
+from statsmodels.tsa.arima.model import ARIMA
+from sklearn.preprocessing import MinMaxScaler
 
 # Load the dataset
 file_path = 'transformed_cotton_production.csv'
 data = pd.read_csv(file_path)
 
 # Use only Year and Production columns, summing production by Year
-yearly_production = data.groupby('Year')['Production'].sum().values.reshape(-1, 1)
+yearly_production = data.groupby('Year')['Production'].sum()
 
-# Scaling the data
-scaler = MinMaxScaler(feature_range=(0, 1))
-scaled_data = scaler.fit_transform(yearly_production)
+# Create a time series index
+yearly_production.index = pd.date_range(start='2000', periods=len(yearly_production), freq='YE')
 
-# Create dataset with look-back
-def create_dataset(data, look_back=3):
-    X, y = [], []
-    for i in range(len(data) - look_back):
-        X.append(data[i:(i + look_back), 0])
-        y.append(data[i + look_back, 0])
-    return np.array(X), np.array(y)
+# Define look_back (set this value based on your requirement)
+look_back = 5  # Example value; adjust as needed
 
-look_back = 3
-X, y = create_dataset(scaled_data, look_back)
+# Create a function to evaluate the ARIMA model
+def evaluate_arima(order):
+    try:
+        model = ARIMA(yearly_production, order=order)
+        model_fit = model.fit()
+        
+        # Generate predictions
+        forecast = model_fit.forecast(steps=5)  # Forecasting for the next 5 years
+        return mean_squared_error(yearly_production[-5:], forecast)
+    except Exception as e:
+        print(f"Error in model fitting: {e}")
+        return np.inf  # Return a large number to indicate failure
 
-# Split the dataset into train and test sets
-train_size = int(len(X) * 0.8)
-X_train, X_test = X[:train_size], X[train_size:]
-y_train, y_test = y[:train_size], y[train_size:]
-
-# Reshape input data to fit CNN-LSTM input shape
-X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
-X_test = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
-
-# Define the Optuna objective function
+# Define the Optuna objective function for ARIMA
 def objective(trial):
-    # Hyperparameters to tune
-    conv_filters = trial.suggest_int('conv_filters', 32, 128, step=32)
-    lstm_units = trial.suggest_int('lstm_units', 32, 128, step=32)
-    kernel_size = trial.suggest_int('kernel_size', 1, 2)  # Reduce to avoid negative dimensions
-    pool_size = trial.suggest_int('pool_size', 1, 2)  # Reduce to avoid negative dimensions
-    learning_rate = trial.suggest_float('learning_rate', 1e-4, 1e-2, log=True)
+    p = trial.suggest_int('p', 0, 5)  # AR term
+    d = trial.suggest_int('d', 0, 2)  # Differencing
+    q = trial.suggest_int('q', 0, 5)  # MA term
     
-    # Build the CNN-LSTM model
-    model = Sequential()
-    model.add(Conv1D(filters=conv_filters, kernel_size=kernel_size, activation='relu', input_shape=(look_back, 1)))
-    model.add(MaxPooling1D(pool_size=pool_size))
-    model.add(LSTM(units=lstm_units, return_sequences=True))
-    model.add(LSTM(units=lstm_units))
-    model.add(Dense(1))
-    
-    model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mse'])
-
-    # Train the model
-    model.fit(X_train, y_train, epochs=50, batch_size=1, verbose=0)
-
-    # Make predictions
-    test_predict = model.predict(X_test)
-    test_predict = scaler.inverse_transform(test_predict)
-
-    # Evaluate model performance
-    mse = mean_squared_error(y_test, test_predict)
-    return mse
+    order = (p, d, q)
+    return evaluate_arima(order)
 
 # Create an Optuna study and optimize
 study = optuna.create_study(direction='minimize')
@@ -75,67 +48,47 @@ study.optimize(objective, n_trials=50)
 
 # Get the best hyperparameters
 best_params = study.best_params
-print(f"Best hyperparameters: {best_params}")
+print(f"Best ARIMA parameters: {best_params}")
 
 # Train the final model with the best hyperparameters
-best_model = Sequential()
-best_model.add(Conv1D(filters=best_params['conv_filters'], kernel_size=best_params['kernel_size'], activation='relu', input_shape=(look_back, 1)))
-best_model.add(MaxPooling1D(pool_size=best_params['pool_size']))
-best_model.add(LSTM(units=best_params['lstm_units'], return_sequences=True))
-best_model.add(LSTM(units=best_params['lstm_units']))
-best_model.add(Dense(1))
+final_model = ARIMA(yearly_production, order=(best_params['p'], best_params['d'], best_params['q']))
+final_model_fit = final_model.fit()
 
-best_model.compile(optimizer='adam', loss='mean_squared_error')
-
-# Train the final model
-best_model.fit(X_train, y_train, epochs=50, batch_size=1, verbose=2)
-
-# Make predictions
-final_train_predict = best_model.predict(X_train)
-final_test_predict = best_model.predict(X_test)
-
-# Inverse transform predictions
-final_train_predict = scaler.inverse_transform(final_train_predict)
-final_test_predict = scaler.inverse_transform(final_test_predict)
-y_train = scaler.inverse_transform([y_train])
-y_test = scaler.inverse_transform([y_test])
-
-# Calculate performance metrics
-mse_optimized = mean_squared_error(y_test[0], final_test_predict)
-mae_optimized = mean_absolute_error(y_test[0], final_test_predict)
-rmse_optimized = np.sqrt(mse_optimized)
+# Generate future predictions
+forecast = final_model_fit.forecast(steps=5)  # Forecasting for the next 5 years
 
 # Plot the predictions and actual values
 plt.figure(figsize=(10, 6))
-plt.plot(range(len(final_train_predict)), final_train_predict, label="Train Predictions", color='blue')
-plt.plot(range(len(final_train_predict), len(final_train_predict) + len(final_test_predict)), final_test_predict, label="Test Predictions", color='green')
-plt.plot(range(len(yearly_production)), yearly_production, label="Actual Values", color='orange')
+plt.plot(yearly_production.index, yearly_production.values, label="Actual Values", color='orange')
+plt.plot(pd.date_range(start=yearly_production.index[-1], periods=6, freq='Y')[1:], forecast, label="Forecast", color='green')
 plt.legend()
-plt.title('Optimized CNN-LSTM Cotton Production Forecast')
+plt.title('ARIMA Cotton Production Forecast')
+plt.xlabel('Year')
+plt.ylabel('Production')
 plt.show()
 
-# Print the performance metrics
-print(f'Optimized CNN-LSTM Model MSE: {mse_optimized}')
-print(f'Optimized CNN-LSTM Model MAE: {mae_optimized}')
-print(f'Optimized CNN-LSTM Model RMSE: {rmse_optimized}')
+# Scaling: Create and save the scaler for future use
+scaler = MinMaxScaler()
 
+# Fit your scaler on the production data
+scaler.fit(data[['Production']])
 
-# Save the trained model
-joblib.dump(best_model, 'cnn_lstm_model.pkl')
-
-# Save the scaler
+# Save the scaler to a file
 joblib.dump(scaler, 'scaler.pkl')
+print("Scaler saved successfully.")
 
-# Save the training columns (look_back)
+# Save the look_back variable
 joblib.dump(look_back, 'look_back.pkl')
+print("Look back value saved successfully.")
 
-# Save the entire Optuna study for future reference
-joblib.dump(study, 'optuna_study.pkl')
+# Save the trained ARIMA model
+joblib.dump(final_model_fit, 'arima_model.pkl')
+print("ARIMA model saved successfully.")
 
-# Save the X_train and y_train for future use
-joblib.dump((X_train, y_train), 'train_data.pkl')
+# Optionally, save the forecast values for future reference
+forecast_df = pd.DataFrame(forecast, index=pd.date_range(start=yearly_production.index[-1] + pd.DateOffset(1), periods=5, freq='Y'), columns=['Forecast'])
+forecast_df.to_csv('forecasted_cotton_production.csv')
+print("Forecast values saved successfully.")
 
-# Save the X_test and y_test for future evaluation
-joblib.dump((X_test, y_test), 'test_data.pkl')
-
-print("Model, scaler, and training data saved successfully.")
+# Print performance metrics
+print(f'Forecast for the next years: {forecast}')
