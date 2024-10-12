@@ -7,24 +7,27 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Cotton Production Prediction</h1>
-
-        <form id="predictionForm" class="form">
-            <label for="year">Select Year:</label>
-            <select id="year" name="year">
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
-                <option value="2027">2027</option>
-                <option value="2028">2028</option>
-            </select>
-
-            <button type="submit">Predict</button>
-        </form>
-
-        <div id="result"></div>
-        <div id="chart"></div> <!-- Div to display the bar chart -->
+    <h1>Cotton Production Prediction</h1>
+    <form id="predictionForm">
+        <label for="year">Select Year:</label>
+        <select id="year" name="year" required>
+            <option value="2023">2023</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+            <option value="2028">2028</option>
+            <option value="2029">2029</option>
+            <option value="2030">2030</option>
+            <option value="2031">2031</option>
+            <option value="2032">2032</option>
+            <option value="2033">2033</option>
+        </select>
+        <button type="submit">Get Prediction</button>
+    </form>
+    
+    <div id="result">
+        <!-- The prediction result will appear here -->
     </div>
 
     <script src="/static/app.js"></script>

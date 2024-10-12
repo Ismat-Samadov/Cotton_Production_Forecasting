@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv1D, LSTM, Dense, MaxPooling1D, Flatten
+from tensorflow.keras.layers import Conv1D, LSTM, Dense, MaxPooling1D
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 import matplotlib.pyplot as plt
 import joblib
@@ -12,7 +12,7 @@ import joblib
 file_path = 'transformed_cotton_production.csv'
 data = pd.read_csv(file_path)
 
-# Use the Production data grouped by Year
+# Use only Year and Production columns, summing production by Year
 yearly_production = data.groupby('Year')['Production'].sum().values.reshape(-1, 1)
 
 # Scaling the data

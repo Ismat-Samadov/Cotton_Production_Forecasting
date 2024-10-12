@@ -1,30 +1,20 @@
 from flask import Flask, render_template, request, jsonify, make_response
 import joblib
-import pandas as pd
-import matplotlib.pyplot as plt
-import io
-import base64
 import logging
 import numpy as np
+import pandas as pd
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Use Agg backend for matplotlib to avoid GUI issues
-plt.switch_backend('Agg')
+# Load the trained model, scaler, and look-back
+model = joblib.load('modelling/cnn_lstm_model.pkl')  
+scaler = joblib.load('modelling/scaler.pkl')  
+look_back = joblib.load('modelling/look_back.pkl')
 
-# Load the unique regions from the dataset
+# Load the cotton production data
 file_path = 'modelling/transformed_cotton_production.csv'
 df = pd.read_csv(file_path)
-unique_regions = df['Region'].unique()
-
-feature_names = ['Year', 'Region']  # List your features used in training
-joblib.dump(feature_names, 'modelling/feature_names.joblib')
-
-
-# Load the trained model, scaler, and feature names
-model = joblib.load('modelling/cnn_lstm_model.pkl')  
-scaler = joblib.load('modelling/scaler.pkl')  # Load the MinMaxScaler
-look_back = joblib.load('modelling/look_back.pkl')  # Load the look-back window
 
 # Flask App
 app = Flask(__name__)
@@ -34,71 +24,47 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
-@app.route('/predict_all', methods=['POST'])
-def predict_all():
-    data = request.get_json()
-    year = int(data['year'])  # Ensure year is correctly parsed
-
-    # Log the year for debugging
+@app.route('/predict', methods=['GET'])
+def predict():
+    year = int(request.args.get('year'))  # Get the year from the query parameter
     logging.info(f"Received year: {year}")
 
-    predictions = {}
+    # We need a sequence of years for the input based on the look_back window
+    # Check if the year has enough historical data
+    if year < (2000 + look_back):
+        return make_response(jsonify({"error": "Insufficient data for the requested year"}), 400)
 
-    # Prepare input for each region
-    for region in unique_regions:
-        # Create input features: year + one-hot encoding for the region
-        input_features = [year]  # Use the year directly, without scaling
+    # Prepare the input data
+    past_years = np.array([[year - i] for i in range(look_back, 0, -1)])
 
-        # One-hot encode the region
-        for feature in feature_names[1:]:  # Skip the first feature, 'Year'
-            if feature == f'Region_{region}':
-                input_features.append(1)  # One-hot encoding
-            else:
-                input_features.append(0)
+    # Log the past years used for the input
+    logging.info(f"Past years input: {past_years}")
 
-        # Ensure only the numerical part is scaled (not the one-hot region encoding)
-        year_scaled = scaler.transform([[year]])  # Scale the year only
-        input_features[0] = year_scaled[0][0]  # Replace the year with the scaled year
+    # Scale the past years
+    try:
+        scaled_past_years = scaler.transform(past_years)
+        logging.info(f"Scaled past years input: {scaled_past_years}")
+    except Exception as e:
+        logging.error(f"Error in scaling input: {e}")
+        return make_response(jsonify({"error": "Failed to scale input data"}), 500)
 
-        # Convert input_features to a NumPy array
-        input_scaled = np.array([input_features])  # Convert to 2D array
+    # Reshape the input to fit the model's expected input shape (1, look_back, 1)
+    input_reshaped = scaled_past_years.reshape((1, look_back, 1))
 
-        # Perform the prediction
-        predicted_production = model.predict(input_scaled)[0]
-        predictions[region] = float(predicted_production)  # Convert float32 to float
+    # Generate prediction using the model
+    try:
+        prediction = model.predict(input_reshaped)[0][0]  # Get the predicted production
+        prediction = scaler.inverse_transform([[prediction]])[0][0]  # Inverse scale to get actual production
+        logging.info(f"Predicted production (actual value): {prediction}")  # Log the actual value
+        # response = jsonify({"prediction": f"Predicted Production for {year}: {round(prediction, 2)} tons"})
+        response = jsonify({"prediction": prediction})  # Directly return the float value
+        return make_response(response, 200)
 
-    # Sort predictions alphabetically by region name
-    sorted_predictions = dict(sorted(predictions.items(), key=lambda item: item[0]))
-
-    # Generate a bar chart for predictions
-    plt.figure(figsize=(10, 6))
-    plt.bar(sorted_predictions.keys(), sorted_predictions.values(), color='blue')
-    plt.xticks(rotation=90)
-    plt.title(f'Predicted Cotton Production for All Regions in {year}')
-    plt.xlabel('Region')
-    plt.ylabel('Predicted Production')
-
-    # Save the plot to a bytes object
-    img = io.BytesIO()
-    plt.savefig(img, format='png')
-    img.seek(0)
-    chart_base64 = base64.b64encode(img.read()).decode('utf-8')
-    plt.close()
-
-    # Convert predictions to a list of dictionaries for easy frontend consumption
-    predictions_list = [{"region": region, "production": prediction} for region, prediction in sorted_predictions.items()]
-
-    # Disable caching of API responses
-    response = make_response(jsonify({
-        "chart": chart_base64,
-        "predictions": predictions_list  # Return predictions
-    }))
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-
-    return response
+    except Exception as e:
+        logging.error(f"Error during prediction: {e}")
+        return make_response(jsonify({"error": str(e)}), 500)
 
 
+    
 if __name__ == '__main__':
     app.run(debug=True)
