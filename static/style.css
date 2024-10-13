@@ -1,92 +1,131 @@
-body {
-    background-image: url('/static/cotton.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    height: 100vh;
+/* Reset some default styles */
+* {
     margin: 0;
-    font-family: Arial, sans-serif;
-    color: white;
-    text-align: center;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f0f4f7;
+    color: #333;
     display: flex;
     justify-content: center;
     align-items: center;
-    flex-direction: column;
-    padding: 20px; /* Added padding to prevent content from sticking to the screen edges */
+    min-height: 100vh;
+    padding: 20px;
 }
 
-h1 {
-    margin-top: 20px;
-    font-size: 2.5em;
-    color: white;
-    text-shadow: 2px 2px 5px black;
-    line-height: 1.2;
-}
-
-form {
-    background-color: rgba(0, 0, 0, 0.7);
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
-    width: 90%; /* Responsive width */
-    max-width: 400px; /* Restricting max width for larger screens */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-select, button {
-    padding: 12px;
-    font-size: 1.1em;
-    margin: 10px 0;
-    border-radius: 5px;
-    border: none;
-    outline: none;
-    background-color: #f0f0f0;
-    color: #333;
-    width: 100%; /* Full width for better mobile experience */
-}
-
-button {
-    background-color: #4CAF50;
-    color: white;
-    cursor: pointer;
+/* Container for the entire dashboard */
+.container {
+    max-width: 1200px;
     width: 100%;
+    padding: 20px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-button:hover {
-    background-color: #45a049;
+/* Header styles */
+header {
+    text-align: center;
+    margin-bottom: 20px;
 }
 
-#result {
-    margin-top: 20px;
-    font-size: 1.5em;
-    font-weight: bold;
-    color: #FFD700;
-    text-shadow: 1px 1px 4px black;
+header h1 {
+    font-size: 2.5em;
+    color: #333;
+    margin-bottom: 15px;
 }
 
-#result span {
-    color: white;
+/* Dropdown styling */
+.dropdown {
+    margin: 10px auto;
+    text-align: center;
 }
 
-/* Media Queries for Mobile */
+.dropdown label {
+    font-size: 1.2em;
+    margin-right: 10px;
+}
+
+.dropdown select {
+    padding: 8px 12px;
+    font-size: 1.1em;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: #f8f8f8;
+    transition: all 0.3s;
+}
+
+.dropdown select:hover {
+    background-color: #f0f4f7;
+}
+
+/* Main container for charts */
+main {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.chart-container {
+    width: 100%;
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container h2 {
+    font-size: 1.8em;
+    margin-bottom: 15px;
+    color: #444;
+    text-align: center;
+}
+
+/* Chart responsive size */
+#totalProductionGraph,
+#economicRegionGraph,
+#regionGraph {
+    height: 400px;
+}
+
+/* Adjust for tablets and smaller screens */
 @media (max-width: 768px) {
-    h1 {
-        font-size: 2em; /* Adjust heading size */
+    .container {
+        padding: 10px;
     }
 
-    form {
-        width: 100%; /* Ensure form takes full width */
-        padding: 20px; /* Add padding */
+    .dropdown select {
+        font-size: 1em;
     }
 
-    select, button {
-        font-size: 1em; /* Adjust input and button font size */
-        padding: 10px;  /* Adjust padding */
+    .chart-container h2 {
+        font-size: 1.5em;
     }
 
-    #result {
-        font-size: 1.2em; /* Adjust result font size for smaller screens */
+    #totalProductionGraph,
+    #economicRegionGraph,
+    #regionGraph {
+        height: 300px;
+    }
+}
+
+/* Adjust for mobile phones */
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 1.8em;
+    }
+
+    .chart-container h2 {
+        font-size: 1.3em;
+    }
+
+    #totalProductionGraph,
+    #economicRegionGraph,
+    #regionGraph {
+        height: 250px;
     }
 }

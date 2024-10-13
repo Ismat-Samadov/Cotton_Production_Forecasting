@@ -3,31 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cotton Production Prediction</title>
+    <title>Cotton Production Forecast</title>
     <link rel="stylesheet" href="/static/style.css">
+    <!-- Include Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <h1>Cotton Production Prediction</h1>
-    <form id="predictionForm">
-        <label for="year">Select Year:</label>
-        <select id="year" name="year" required>
-            <option value="2023">2023</option>
-            <option value="2024">2024</option>
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
-            <option value="2027">2027</option>
-            <option value="2028">2028</option>
-            <option value="2029">2029</option>
-            <option value="2030">2030</option>
-            <option value="2031">2031</option>
-            <option value="2032">2032</option>
-            <option value="2033">2033</option>
-        </select>
-        <button type="submit">Get Prediction</button>
-    </form>
-    
-    <div id="result">
-        <!-- The prediction result will appear here -->
+    <div class="container">
+        <header>
+            <h1>Cotton Production Forecast Dashboard</h1>
+
+        </header>
+
+        <main>
+            <!-- Chart containers -->
+            <section id="totalProductionChart" class="chart-container">
+                <h2>Total Cotton Production</h2>
+                <div id="totalProductionGraph"></div>
+            </section>
+
+            <section id="economicRegionChart" class="chart-container">
+                <h2>Cotton Production by Economic Region</h2>
+                <div id="economicRegionGraph"></div>
+            </section>
+
+            <section id="regionChart" class="chart-container">
+                            <!-- Dropdown for selecting region (placed at the top) -->
+            <div class="dropdown">
+                <label for="regionSelect">Select Region:</label>
+                <select id="regionSelect">
+                    <!-- Options will be populated dynamically from JavaScript -->
+                </select>
+            </div>
+                <h2>Cotton Production by Selected Region</h2>
+                <div id="regionGraph"></div>
+            </section>
+        </main>
     </div>
 
     <script src="/static/app.js"></script>

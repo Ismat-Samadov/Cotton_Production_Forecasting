@@ -23,12 +23,15 @@ look_back = 5  # Example value; adjust as needed
 # Create a function to evaluate the ARIMA model
 def evaluate_arima(order):
     try:
-        model = ARIMA(yearly_production, order=order)
-        model_fit = model.fit()
+        # Only use data up to the present for training
+        train_data = yearly_production[:'2023']  # Up to 2023
         
-        # Generate predictions
-        forecast = model_fit.forecast(steps=5)  # Forecasting for the next 5 years
-        return mean_squared_error(yearly_production[-5:], forecast)
+        model = ARIMA(train_data, order=order)
+        model_fit = model.fit()
+
+        # Generate predictions for the next 5 years
+        forecast = model_fit.forecast(steps=5)  # Forecasting for 2024-2028
+        return mean_squared_error(train_data[-5:], forecast)
     except Exception as e:
         print(f"Error in model fitting: {e}")
         return np.inf  # Return a large number to indicate failure
@@ -50,21 +53,24 @@ study.optimize(objective, n_trials=50)
 best_params = study.best_params
 print(f"Best ARIMA parameters: {best_params}")
 
-# Train the final model with the best hyperparameters
-final_model = ARIMA(yearly_production, order=(best_params['p'], best_params['d'], best_params['q']))
+# Train the final model with the best hyperparameters using past data up to 2023
+final_model = ARIMA(yearly_production[:'2023'], order=(best_params['p'], best_params['d'], best_params['q']))
 final_model_fit = final_model.fit()
 
-# Generate future predictions
+# Generate future predictions for 2024-2028
 forecast = final_model_fit.forecast(steps=5)  # Forecasting for the next 5 years
+
+# Create a date range for the forecast
+future_years = pd.date_range(start=yearly_production.index[-1], periods=6, freq='Y')[1:]
 
 # Plot the predictions and actual values
 plt.figure(figsize=(10, 6))
 plt.plot(yearly_production.index, yearly_production.values, label="Actual Values", color='orange')
-plt.plot(pd.date_range(start=yearly_production.index[-1], periods=6, freq='Y')[1:], forecast, label="Forecast", color='green')
+plt.plot(future_years, forecast, label="Forecast", color='green')
 plt.legend()
-plt.title('ARIMA Cotton Production Forecast')
+plt.title('ARIMA Cotton Production Forecast (2024-2028)')
 plt.xlabel('Year')
-plt.ylabel('Production')
+plt.ylabel('Production (tons)')
 plt.show()
 
 # Scaling: Create and save the scaler for future use
@@ -86,7 +92,7 @@ joblib.dump(final_model_fit, 'arima_model.pkl')
 print("ARIMA model saved successfully.")
 
 # Optionally, save the forecast values for future reference
-forecast_df = pd.DataFrame(forecast, index=pd.date_range(start=yearly_production.index[-1] + pd.DateOffset(1), periods=5, freq='Y'), columns=['Forecast'])
+forecast_df = pd.DataFrame(forecast, index=future_years, columns=['Forecast'])
 forecast_df.to_csv('forecasted_cotton_production.csv')
 print("Forecast values saved successfully.")
 

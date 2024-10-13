@@ -1,45 +1,66 @@
-document.getElementById('predictionForm').addEventListener('submit', async function(event) {
-    event.preventDefault();
+// Fetch and populate the region dropdown
+async function fetchRegions() {
+    const response = await fetch('/regions');
+    const data = await response.json();
+
+    const regionSelect = document.getElementById('regionSelect');
+    data.regions.forEach(region => {
+        const option = document.createElement('option');
+        option.value = region;
+        option.text = region;
+        regionSelect.appendChild(option);
+    });
+}
+
+// Fetch total production forecast
+async function fetchTotalProduction() {
+    const response = await fetch('/predict/whole');
+    const data = await response.json();
+    const graphJSON = data.graph;
+
+    // Plot the total production graph
+    Plotly.newPlot('totalProductionGraph', JSON.parse(graphJSON).data, JSON.parse(graphJSON).layout);
+}
+
+// Fetch economic region forecast
+async function fetchEconomicRegion() {
+    const response = await fetch('/predict/economic-region');
+    const data = await response.json();
+    const graphJSON = data.graph;
+
+    // Plot the economic region graph
+    Plotly.newPlot('economicRegionGraph', JSON.parse(graphJSON).data, JSON.parse(graphJSON).layout);
+}
+
+// Fetch production forecast for selected region
+async function fetchRegionForecast(region) {
+    const response = await fetch(`/predict/region?region=${region}`);
+    const data = await response.json();
     
-    const year = document.getElementById('year').value;
+    if (data.graph) {
+        const graphJSON = data.graph;
+        Plotly.newPlot('regionGraph', JSON.parse(graphJSON).data, JSON.parse(graphJSON).layout);
+    } else {
+        document.getElementById('regionGraph').innerText = 'No data available for the selected region.';
+    }
+}
 
-    try {
-        const response = await fetch(`/predict?year=${year}`);
-        
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
+// Initialize the page by fetching regions and charts
+document.addEventListener('DOMContentLoaded', async () => {
+    await fetchRegions();
+    await fetchTotalProduction();
+    await fetchEconomicRegion();
 
-        const data = await response.json();
+    // Handle region change event
+    const regionSelect = document.getElementById('regionSelect');
+    regionSelect.addEventListener('change', async function() {
+        const selectedRegion = regionSelect.value;
+        await fetchRegionForecast(selectedRegion);
+    });
 
-        // Check if predictions are an array
-        if (data.predictions && Array.isArray(data.predictions)) {
-            // Beautify the prediction output
-            const resultContainer = document.getElementById('result');
-            resultContainer.innerHTML = `
-                <h3>🌾 Predicted Cotton Production for the Next 5 Years 🌾</h3>
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background-color: #f2f2f2;">
-                            <th style="padding: 8px; border: 1px solid #ddd;">Year</th>
-                            <th style="padding: 8px; border: 1px solid #ddd;">Production (tons)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.predictions.map((prediction, index) => `
-                            <tr>
-                                <td style="padding: 8px; border: 1px solid #ddd;">${2024 + index}</td>
-                                <td style="padding: 8px; border: 1px solid #ddd;">${prediction.toFixed(2)}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        } else {
-            throw new Error('Predictions are not in the expected format');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        document.getElementById('result').innerText = 'Error: ' + error.message;
+    // Fetch default region forecast (first region in the list)
+    const firstRegion = regionSelect.value;
+    if (firstRegion) {
+        await fetchRegionForecast(firstRegion);
     }
 });
